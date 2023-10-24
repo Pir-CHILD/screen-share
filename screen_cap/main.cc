@@ -23,7 +23,7 @@ int main()
     avdevice_register_all();
     avformat_network_init();
     int ret = 0;
-    // char err_buf[25] = "\0";
+    char err_buf[25] = "\0";
 
     // 打开输入设备（屏幕捕获）
     AVFormatContext *input_ctx = avformat_alloc_context();
@@ -34,13 +34,14 @@ int main()
         return -1;
     }
     AVDictionary *options = NULL;
-    av_dict_set(&options, "framerate", "30", 0);         // 设置帧率
+    av_dict_set(&options, "framerate", "10", 0);         // 设置帧率
     av_dict_set(&options, "video_size", "1920x1080", 0); // 设置视频尺寸
 
     ret = avformat_open_input(&input_ctx, ":0.0", input_format, &options);
     if (ret != 0)
     {
-        // logging("ERROR: open input device error: %s", av_err2str(ret));
+        av_strerror(ret, err_buf, 25);
+        logging("ERROR: open input device error: %s", err_buf);
 
         return -1;
     }
@@ -48,7 +49,8 @@ int main()
     ret = avformat_find_stream_info(input_ctx, NULL);
     if (ret < 0)
     {
-        // logging("ERROR: find stream info error: %s", av_err2str(ret));
+        av_strerror(ret, err_buf, 25);
+        logging("ERROR: find stream info error: %s", err_buf);
 
         return -1;
     }
@@ -137,7 +139,7 @@ int main()
     }
 
     ret = 0;
-    int how_many_packets_to_process = 16;
+    int how_many_packets_to_process = 30;
 
     // fill the Packet with data from the Stream
     while (av_read_frame(input_ctx, pPacket) >= 0)
@@ -240,10 +242,12 @@ static int decode_packet(AVPacket *pPacket, AVCodecContext *pCodecContext, AVFra
 {
     // supply raw packet data as input to a decoder
     int ret = avcodec_send_packet(pCodecContext, pPacket);
+    char err_buf[25];
 
     if (ret < 0)
     {
-        // logging("ERROR: sending a packet to the decoder error: %s", av_err2str(ret));
+        av_strerror(ret, err_buf, 25);
+        logging("ERROR: sending a packet to the decoder error: %s", err_buf);
         return ret;
     }
 
@@ -257,7 +261,8 @@ static int decode_packet(AVPacket *pPacket, AVCodecContext *pCodecContext, AVFra
         }
         else if (ret < 0)
         {
-            // logging("ERROR: receiving as frame from the decoder: %s", av_err2str(ret));
+            av_strerror(ret, err_buf, 25);
+            logging("ERROR: receiving as frame from the decoder: %s", err_buf);
             return ret;
         }
 
